@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import google.generativeai as genai
 from PIL import Image
 import io
+from typing import List, Dict
 
 # --- API KEY ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") 
@@ -13,51 +14,92 @@ model_flash = "models/gemini-flash-latest"
 
 app = FastAPI()
 
-# --- DİNAMİK ROLLER ---
-# Artık promptu dinamik oluşturacağız
+# --- GELİŞMİŞ ROLLER ---
 def get_system_instruction(role, target_lang, source_lang):
-    # target_lang: Öğrenilen dil (Örn: English)
-    # source_lang: Kullanıcının dili / Açıklama dili (Örn: Kurdish)
     
-    base_instruction = f"""
-    Senin adın Deng. Görevin kullanıcının {target_lang} öğrenmesine yardımcı olmak.
-    Kullanıcı ile {target_lang} diliyle samimi bir konuşma yapmak.
-    ANCAK, gramer hatalarını açıklarken veya konuyu anlatırken MUTLAKA {source_lang} dilini kullan.
-    Samimi, sabırlı ve yardımsever ol.kısa cevaplar ver.
+    # ORTAK KURALLAR
+    base = f"""
+    Senin adın Deng. Şu an bir rol yapma oyunundayız.
+    Kullanıcının hedef dili: {target_lang}.
+    Senin açıklamaların ve yardım dilin: {source_lang}.
+    CEVAPLARIN KISA VE ÖZ OLSUN. Uzun paragraflar yazma.
     """
-    
-    if role == "teacher":
-        return base_instruction + " Bir öğretmen gibi gramer kuralları ver. yapılan yanlışları nazikçe düzelt. cümlelerin çokta uzun olmasın."
-    # elif role == "waiter":
-    #     return base_instruction + f" Sen bir garsonsun. {target_lang} konuşulan bir kafedesin. Sipariş al."
-    elif role == "interviewer":
-        return base_instruction + f" Sen bir işe alım uzmanısın. {target_lang} dilinde mülakat yap."
-    else: # friend
-        return base_instruction + " Bir arkadaş gibi doğal, kısa, arkadaş canlısı ve samimi bir arkadaşmış gibi konuş."
 
-# --- 1. SOHBET ENDPOINT ---
+    if role == "teacher":
+        return base + f"""
+        [ROLÜN: ÖĞRETMEN]
+        1. Çok nazik, sabırlı ve destekleyici bir öğretmensin.
+        2. Kullanıcının {target_lang} gramer hatalarını ASLA affetme, hemen nazikçe düzelt.
+        3. Düzeltmeyi yaptıktan sonra konuya devam et.
+        4. Emojiler kullan: 📚, ✍️, ✨.
+        5. Kullanıcı "Merhaba" derse, derse hazır olup olmadığını sor.
+        """
+    
+    elif role == "friend":
+        return base + f"""
+        [ROLÜN: EN YAKIN ARKADAŞ (KANKA)]
+        1. Sen bir 'öğretmen' DEĞİLSİN. Sakın ders verme.
+        2. Kullanıcı hata yapsa bile, anlam bozulmuyorsa GÖRMEZDEN GEL ve sohbete devam et.
+        3. Sokak ağzı (slang), kısaltmalar ve samimi bir dil kullan.
+        4. "Dostum", "Kanka", "Bro" gibi hitaplar kullanabilirsin.
+        5. Emojiler kullan: 😎, 😂, 🔥, 👋.
+        6. Kullanıcı "Merhaba" derse, "Naber, ne yapıyorsun?" gibi doğal cevap ver.
+        """
+    
+    # elif role == "interviewer":
+    #     return base + f"""
+    #     [ROLÜN: İŞE ALIM UZMANI]
+    #     1. Ciddi, profesyonel ve resmi ol.
+    #     2. {target_lang} dilinde mülakat yapıyorsun.
+    #     3. Kullanıcının cevaplarını profesyonelce değerlendir ve bir sonraki zor soruyu sor.
+    #     """
+        
+    else:
+        return base + "Doğal ve yardımsever ol."
+
+# --- CHAT MODELİ GÜNCELLENDİ ---
 class ChatRequest(BaseModel):
     text: str
     role: str = "friend"
-    target_lang: str = "English" # Öğrenilecek dil
-    source_lang: str = "Turkish" # Bilenen dil (Açıklama dili)
+    target_lang: str = "English"
+    source_lang: str = "Turkish"
+    # YENİ: Geçmişi de alıyoruz (List of dictionaries)
+    history: List[Dict[str, str]] = [] 
 
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
     try:
-        # Dilleri prompt'a gömüyoruz
         system_instruction = get_system_instruction(request.role, request.target_lang, request.source_lang)
         
+        # Gemini Modeli Oluştur
         model = genai.GenerativeModel(model_flash)
-        chat = model.start_chat(history=[
-            {"role": "user", "parts": ["System Instruction: " + system_instruction]},
-            {"role": "model", "parts": ["Understood. I am ready."]}
-        ])
         
+        # 1. Sistem talimatını geçmişin en başına ekle
+        gemini_history = [
+            {"role": "user", "parts": ["System Instruction: " + system_instruction]},
+            {"role": "model", "parts": ["Understood. I'm ready."]}
+        ]
+
+        # 2. Flutter'dan gelen geçmiş mesajları Gemini formatına çevirip ekle
+        # (Son 10 mesajı alıyoruz ki token dolmasın)
+        for msg in request.history[-10:]: 
+            role = "user" if msg['role'] == "user" else "model"
+            content = msg.get('content', '')
+            if content:
+                gemini_history.append({"role": role, "parts": [content]})
+        
+        # 3. Sohbeti başlat (Geçmiş yüklü olarak)
+        chat = model.start_chat(history=gemini_history)
+        
+        # 4. Yeni mesajı gönder
         response = chat.send_message(request.text)
+        
         return {"reply": response.text}
     except Exception as e:
-        return {"reply": "Connection error / Bağlantı hatası", "error": str(e)}
+        return {"reply": "Connection error...", "error": str(e)}
+
+# --- DİĞER ENDPOINTLER (vision, define) AYNI KALACAK ---
+# ... (vision ve define kodlarını buraya eski haliyle yapıştırabilirsin)
     
 
 # --- 2. GÖRSEL ZEKA ENDPOINT ---
