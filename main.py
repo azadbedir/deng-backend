@@ -134,6 +134,13 @@ def define_endpoint(request: DefineRequest):
         response = model.generate_content(prompt)
         
         return {"definition": response.text.strip()}
+    # main.py dosyasının EN ALTINDAKİ kısmı bul ve şöyle değiştir:
+
     except Exception as e:
-        return {"definition": "Could not find definition.", "error": str(e)}
+        # Hatanın kendisini (e) direkt ekrana yazdırıyoruz ki görelim
+        hata_mesaji = f"HATA DETAYI: {str(e)}"
+        print(hata_mesaji) # Loglara da düşsün
+        return {"reply": hata_mesaji}
+    
+
 
