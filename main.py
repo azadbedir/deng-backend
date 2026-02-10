@@ -79,7 +79,14 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
     try:
-        system_instruction = get_system_instruction(request.role, request.target_lang, request.source_lang)
+        # --- İŞTE SORDUĞUN KISIM BURASI ---
+        # get_system_instruction fonksiyonunu çağırırken artık 'request.level' verisini de gönderiyoruz.
+        system_instruction = get_system_instruction(
+            request.role, 
+            request.target_lang, 
+            request.source_lang, 
+            request.level  # <--- YENİ EKLENEN KISIM
+        )
         
         # Gemini Modeli Oluştur
         model = genai.GenerativeModel(model_flash)
@@ -90,15 +97,14 @@ def chat_endpoint(request: ChatRequest):
             {"role": "model", "parts": ["Understood. I'm ready."]}
         ]
 
-        # 2. Flutter'dan gelen geçmiş mesajları Gemini formatına çevirip ekle
-        # (Son 10 mesajı alıyoruz ki token dolmasın)
+        # 2. Geçmiş mesajları ekle
         for msg in request.history[-10:]: 
             role = "user" if msg['role'] == "user" else "model"
             content = msg.get('content', '')
             if content:
                 gemini_history.append({"role": role, "parts": [content]})
         
-        # 3. Sohbeti başlat (Geçmiş yüklü olarak)
+        # 3. Sohbeti başlat
         chat = model.start_chat(history=gemini_history)
         
         # 4. Yeni mesajı gönder
@@ -107,9 +113,6 @@ def chat_endpoint(request: ChatRequest):
         return {"reply": response.text}
     except Exception as e:
         return {"reply": "Connection error...", "error": str(e)}
-
-# --- DİĞER ENDPOINTLER (vision, define) AYNI KALACAK ---
-# ... (vision ve define kodlarını buraya eski haliyle yapıştırabilirsin)
     
 
 # --- 2. GÖRSEL ZEKA ENDPOINT ---
@@ -146,6 +149,7 @@ def define_endpoint(request: DefineRequest):
         return {"definition": response.text.strip()}
     except Exception as e:
         return {"definition": "Could not find definition.", "error": str(e)}
+
 
 
 
