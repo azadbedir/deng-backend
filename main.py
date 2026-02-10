@@ -16,12 +16,22 @@ app = FastAPI()
 
 # --- GELİŞMİŞ ROLLER ---
 def get_system_instruction(role, target_lang, source_lang):
+
+    # SEVİYE AYARLARI
+    level_instruction = ""
+    if "A1" in level:
+        level_instruction = f"Kullanıcı {target_lang} dilinde BAŞLANGIÇ (Beginner) seviyesinde. Çok basit kelimeler kullan. Kısa ve net cümleler kur. Karmaşık gramer yapılarından kaçın."
+    elif "B1" in level:
+        level_instruction = f"Kullanıcı {target_lang} dilinde ORTA (Intermediate) seviyede. Günlük konuşma dilini kullanabilirsin ama çok ağır deyimlerden kaçın."
+    else: # C1-C2
+        level_instruction = f"Kullanıcı {target_lang} dilinde İLERİ (Advanced) seviyede. Zengin bir kelime dağarcığı, deyimler ve karmaşık yapılar kullanabilirsin. Zorlayıcı ol."
     
     # ORTAK KURALLAR
     base = f"""
     Senin adın Deng. Şu an bir rol yapma oyunundayız.
     Kullanıcının hedef dili: {target_lang}.
     Senin açıklamaların ve yardım dilin: {source_lang}.
+    SEVİYE TALİMATI: {level_instruction}
     CEVAPLARIN KISA VE ÖZ OLSUN. Uzun paragraflar yazma.
     """
 
@@ -63,8 +73,8 @@ class ChatRequest(BaseModel):
     role: str = "friend"
     target_lang: str = "English"
     source_lang: str = "Turkish"
-    # YENİ: Geçmişi de alıyoruz (List of dictionaries)
-    history: List[Dict[str, str]] = [] 
+    level: str = "A1-A2 (Beginner)" # <--- YENİ
+    history: List[Dict[str, str]] = []
 
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
@@ -136,5 +146,6 @@ def define_endpoint(request: DefineRequest):
         return {"definition": response.text.strip()}
     except Exception as e:
         return {"definition": "Could not find definition.", "error": str(e)}
+
 
 
