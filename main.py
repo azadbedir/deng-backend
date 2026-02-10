@@ -15,7 +15,7 @@ model_flash = "models/gemini-1.5-flash"
 app = FastAPI()
 
 # --- GELİŞMİŞ ROLLER ---
-def get_system_instruction(role, target_lang, source_lang):
+def get_system_instruction(role, target_lang, source_lang, level):
 
     # SEVİYE AYARLARI
     level_instruction = ""
@@ -146,6 +146,7 @@ def define_endpoint(request: DefineRequest):
         return {"definition": response.text.strip()}
     except Exception as e:
         return {"definition": "Could not find definition.", "error": str(e)}
+
 
 
 
