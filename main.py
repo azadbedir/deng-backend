@@ -159,6 +159,30 @@ def define_endpoint(request: DefineRequest):
         print(f"Hata: {e}")
         return {"definition": "...", "error": str(e)}
 
+# main.py dosyasının içine, diğer sınıfların altına:
+class TranslateRequest(BaseModel):
+    text: str
+    target_lang: str  # Kullanıcının anadili (Örn: Türkçe)
+
+# ... diğer endpointlerin altına şu YENİ ENDPOINT'i ekle:
+
+@app.post("/translate_sentence")
+def translate_sentence_endpoint(request: TranslateRequest):
+    try:
+        # Gemini'ye özel emir: "Bu cümleyi doğal ve akıcı bir şekilde çevir."
+        prompt = (
+            f"Translate the following sentence into {request.target_lang}. "
+            f"Provide a natural, fluent translation. No explanations, just the translation.\n\n"
+            f"Sentence: {request.text}"
+        )
+        
+        model = genai.GenerativeModel("models/gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        
+        return {"translation": response.text.strip()}
+    except Exception as e:
+        return {"translation": "Çeviri yapılamadı.", "error": str(e)}
+
 
 
 
