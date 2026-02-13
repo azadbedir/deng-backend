@@ -140,15 +140,25 @@ class DefineRequest(BaseModel):
 @app.post("/define")
 def define_endpoint(request: DefineRequest):
     try:
-        # Gemini'ye sadece kelimenin anlamını soruyoruz
-        prompt = f"What does the word '{request.word}' mean in {request.source_lang}? Give a very short definition or translation (max 1 sentence)."
+        prompt = (
+            f"Translate the word '{request.word}' into {request.source_lang}. "
+            f"Return ONLY the direct translations separated by commas (e.g. 'Meaning1, Meaning2'). "
+            f"DO NOT write sentences. DO NOT give definitions. DO NOT add pronunciation."
+            f"Just the words."
+        )
         
-        model = genai.GenerativeModel("models/gemini-flash-latest")
+        model = genai.GenerativeModel("models/gemini-1.5-flash") 
         response = model.generate_content(prompt)
         
-        return {"definition": response.text.strip()}
+        # Olası gereksiz boşlukları ve noktaları temizle
+        clean_text = response.text.strip().replace("\n", "").rstrip(".")
+        
+        return {"definition": clean_text}
+        
     except Exception as e:
-        return {"definition": "Could not find definition.", "error": str(e)}
+        print(f"Hata: {e}")
+        return {"definition": "...", "error": str(e)}
+
 
 
 
