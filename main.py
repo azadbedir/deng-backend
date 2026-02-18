@@ -56,13 +56,13 @@ def get_system_instruction(role, target_lang, source_lang, level):
         6. Kullanıcı "Merhaba" derse, "Naber, ne yapıyorsun?" gibi doğal cevap ver.
         """
     
-    # elif role == "interviewer":
-    #     return base + f"""
-    #     [ROLÜN: İŞE ALIM UZMANI]
-    #     1. Ciddi, profesyonel ve resmi ol.
-    #     2. {target_lang} dilinde mülakat yapıyorsun.
-    #     3. Kullanıcının cevaplarını profesyonelce değerlendir ve bir sonraki zor soruyu sor.
-    #     """
+    elif role == "interviewer":
+        return base + f"""
+        [ROLÜN: İŞE ALIM UZMANI]
+        1. Ciddi, profesyonel ve resmi ol.
+        2. {target_lang} dilinde mülakat yapıyorsun.
+        3. Kullanıcının cevaplarını profesyonelce değerlendir ve bir sonraki zor soruyu sor.
+        """
         
     else:
         return base + "Doğal ve yardımsever ol."
@@ -182,6 +182,7 @@ def translate_sentence_endpoint(request: TranslateRequest):
         return {"translation": response.text.strip()}
     except Exception as e:
         return {"translation": "Çeviri yapılamadı.", "error": str(e)}
+
 
 
 
