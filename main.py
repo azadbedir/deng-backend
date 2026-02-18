@@ -11,8 +11,8 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
 # --- MODEL GÜNCELLEMESİ ---
-# gemini-pro yerine çok daha zeki, hızlı ve çok dilli olan 1.5-flash'ı kullanıyoruz.
-model_flash = "models/gemini-1.5-flash" 
+model_text = "gemini-pro"         # Sadece yazı için
+model_vision = "gemini-pro-vision" # Görsel zeka için
 
 app = FastAPI()
 
@@ -175,3 +175,4 @@ def translate_sentence_endpoint(request: TranslateRequest):
         return {"translation": response.text.strip()}
     except Exception as e:
         return {"translation": "Çeviri yapılamadı.", "error": str(e)}
+
