@@ -10,7 +10,7 @@ from typing import List, Dict
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# --- MODEL GÜNCELLEMESİ ---
+# --- STABİL MODEL GÜNCELLEMESİ ---
 model_text = "gemini-pro"         # Sadece yazı için
 model_vision = "gemini-pro-vision" # Görsel zeka için
 
@@ -92,8 +92,8 @@ def chat_endpoint(request: ChatRequest):
             request.level 
         )
         
-        # Güncellenmiş Modeli Kullanıyoruz
-        model = genai.GenerativeModel(model_flash)
+        # DÜZELTİLDİ: Stabil metin modeli kullanılıyor
+        model = genai.GenerativeModel(model_text)
         
         gemini_history = [
             {"role": "user", "parts": ["System Instruction: " + system_instruction]},
@@ -111,7 +111,9 @@ def chat_endpoint(request: ChatRequest):
         
         return {"reply": response.text}
     except Exception as e:
-        return {"reply": "Connection error...", "error": str(e)}
+        # DÜZELTİLDİ: Gerçek hata mesajını Deng'in ağzından göreceğiz
+        error_message = str(e)
+        return {"reply": f"Sistem Hatası: {error_message}", "error": error_message}
     
 
 # --- 2. GÖRSEL ZEKA ENDPOINT ---
@@ -123,12 +125,13 @@ async def vision_endpoint(file: UploadFile = File(...), prompt: str = Form(...),
         
         full_prompt = f"{prompt}. Please explain in {source_lang}."
         
-        model = genai.GenerativeModel(model_flash)
+        # DÜZELTİLDİ: Stabil görsel model kullanılıyor
+        model = genai.GenerativeModel(model_vision)
         response = model.generate_content([full_prompt, image])
         
         return {"reply": response.text}
     except Exception as e:
-        return {"reply": "Error seeing image.", "error": str(e)}
+        return {"reply": f"Görsel Hatası: {str(e)}", "error": str(e)}
     
 # --- 3. SÖZLÜK ENDPOINT ---
 class DefineRequest(BaseModel):
@@ -145,7 +148,8 @@ def define_endpoint(request: DefineRequest):
             f"Just the words."
         )
         
-        model = genai.GenerativeModel(model_flash) 
+        # DÜZELTİLDİ: Stabil metin modeli kullanılıyor
+        model = genai.GenerativeModel(model_text) 
         response = model.generate_content(prompt)
         
         clean_text = response.text.strip().replace("\n", "").rstrip(".")
@@ -153,7 +157,7 @@ def define_endpoint(request: DefineRequest):
         
     except Exception as e:
         print(f"Hata: {e}")
-        return {"definition": "...", "error": str(e)}
+        return {"definition": f"Hata: {str(e)}", "error": str(e)}
 
 # --- 4. CÜMLE ÇEVİRİ ENDPOINT ---
 class TranslateRequest(BaseModel):
@@ -169,10 +173,10 @@ def translate_sentence_endpoint(request: TranslateRequest):
             f"Sentence: {request.text}"
         )
         
-        model = genai.GenerativeModel(model_flash)
+        # DÜZELTİLDİ: Stabil metin modeli kullanılıyor
+        model = genai.GenerativeModel(model_text)
         response = model.generate_content(prompt)
         
         return {"translation": response.text.strip()}
     except Exception as e:
-        return {"translation": "Çeviri yapılamadı.", "error": str(e)}
-
+        return {"translation": f"Çeviri Hatası: {str(e)}", "error": str(e)}
