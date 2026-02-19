@@ -10,9 +10,9 @@ from typing import List, Dict
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# --- STABİL MODEL GÜNCELLEMESİ ---
-model_text = "gemini-pro"         # Sadece yazı için
-model_vision = "gemini-pro-vision" # Görsel zeka için
+# --- YENİ NESİL MODEL GÜNCELLEMESİ ---
+model_text = "gemini-1.5-flash"         
+model_vision = "gemini-1.5-flash"
 
 app = FastAPI()
 
@@ -180,3 +180,4 @@ def translate_sentence_endpoint(request: TranslateRequest):
         return {"translation": response.text.strip()}
     except Exception as e:
         return {"translation": f"Çeviri Hatası: {str(e)}", "error": str(e)}
+
