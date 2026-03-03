@@ -5,6 +5,8 @@ import google.generativeai as genai
 from PIL import Image
 import io
 from typing import List, Dict
+import firebase_admin
+from firebase_admin import credentials, firestore, messaging
 
 # --- API KEY ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") 
@@ -15,6 +17,14 @@ model_text = "gemini-2.5-flash"
 model_vision = "gemini-2.5-flash"
 
 app = FastAPI()
+
+# --- FIREBASE BAŞLATMA (Eğer daha önce başlatılmadıysa başlat) ---
+if not firebase_admin._apps:
+    # firebase-key.json dosyasının Render sunucunda ana dizinde olduğundan emin ol
+    cred = credentials.Certificate("firebase-key.json") 
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
 
 # --- GELİŞMİŞ ROLLER VE KESİN DİL KURALLARI ---
 def get_system_instruction(role, target_lang, source_lang, level):
@@ -193,6 +203,40 @@ def translate_sentence_endpoint(request: TranslateRequest):
         return {"translation": response.text.strip()}
     except Exception as e:
         return {"translation": f"Çeviri Hatası: {str(e)}", "error": str(e)}
+
+# --- 5. OTOMATİK BİLDİRİM TETİKLEYİCİ ENDPOINT ---
+@app.get("/send_daily_reminders")
+def send_daily_reminders(key: str = ""):
+    # GÜVENLİK: Başkası linki bulup sürekli bildirim atmasın diye şifre koyuyoruz
+    if key != "DENG_GIZLI_CRON_SIFRE_2024":
+        return {"error": "Yetkisiz erişim!"}
+    
+    print("Kullanıcılara bildirim gönderiliyor...")
+    
+    success_count = 0
+    users_ref = db.collection('users').stream()
+
+    for user in users_ref:
+        user_data = user.to_dict()
+        token = user_data.get('fcm_token')
+        name = user_data.get('display_name', 'Dostum') 
+
+        if token:
+            try:
+                message = messaging.Message(
+                    notification=messaging.Notification(
+                        title=f"Hey {name}! Pratik Zamanı 🚀", 
+                        body="Deng seni bekliyor, gel ve hemen 5 dakika pratik yapalım!"
+                    ),
+                    token=token, 
+                )
+                messaging.send(message)
+                success_count += 1
+            except Exception as e:
+                print(f"❌ {name} için bildirim gönderilemedi. Hata: {e}")
+
+    return {"status": "Tamamlandı", "ulasilan_kisi_sayisi": success_count}
+
 
 
 
