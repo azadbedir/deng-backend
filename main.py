@@ -133,27 +133,40 @@ async def vision_endpoint(file: UploadFile = File(...), prompt: str = Form(...),
     except Exception as e:
         return {"reply": f"Görsel Hatası: {str(e)}", "error": str(e)}
     
-# --- 3. SÖZLÜK ENDPOINT ---
+# --- 3. AKILLI SÖZLÜK ENDPOINT ---
 class DefineRequest(BaseModel):
     word: str
-    source_lang: str 
+    source_lang: str
+    learn_lang: str # YENİ: Kullanıcının o an hangi kursu okuduğunu alıyoruz
 
 @app.post("/define")
 def define_endpoint(request: DefineRequest):
     try:
-        prompt = (
-            f"Translate the word '{request.word}' into {request.source_lang}. "
-            f"Return ONLY the direct translations separated by commas (e.g. 'Meaning1, Meaning2'). "
-            f"DO NOT write sentences. DO NOT give definitions. DO NOT add pronunciation. "
-            f"Just the words."
-        )
+        # Gemini'den doğrudan bir JSON formatı istiyoruz ki verileri programatik olarak bölebilelim
+        prompt = f"""
+        You are an intelligent language dictionary.
+        User's native language: {request.source_lang}
+        User's current target learning language: {request.learn_lang}
+        Word searched: '{request.word}'
+
+        Tasks:
+        1. Identify the language of the searched word.
+        2. If the word is in the native language ({request.source_lang}), translate it into the target language ({request.learn_lang}). The 'target_word' will be this translation, and 'detected_language' will be {request.learn_lang}.
+        3. If the word is NOT in the native language, translate it into {request.source_lang}. The 'target_word' will be the searched word, and 'detected_language' will be its actual language (e.g., English, Kurdî, Deutsch).
         
-        # DÜZELTİLDİ: Stabil metin modeli kullanılıyor
+        Respond ONLY in valid JSON format exactly like this, nothing else:
+        {{"detected_language": "LanguageName", "target_word": "WordToLearn", "definition": "MeaningInNativeLanguage"}}
+        """
+        
         model = genai.GenerativeModel(model_text) 
         response = model.generate_content(prompt)
         
-        clean_text = response.text.strip().replace("\n", "").rstrip(".")
-        return {"definition": clean_text}
+        # Gelen metindeki olası markdown kodlarını (```json vb.) temizleyip gerçek JSON'a çeviriyoruz
+        clean_text = response.text.strip().replace("```json", "").replace("```", "").strip()
+        import json
+        data = json.loads(clean_text)
+        
+        return data
         
     except Exception as e:
         print(f"Hata: {e}")
@@ -180,5 +193,6 @@ def translate_sentence_endpoint(request: TranslateRequest):
         return {"translation": response.text.strip()}
     except Exception as e:
         return {"translation": f"Çeviri Hatası: {str(e)}", "error": str(e)}
+
 
 
