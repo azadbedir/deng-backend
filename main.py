@@ -107,7 +107,7 @@ def chat_endpoint(request: ChatRequest):
             request.role, 
             request.target_lang, 
             request.source_lang, 
-            request.level 
+            request.level,
             request.scenario_prompt
         )
         
