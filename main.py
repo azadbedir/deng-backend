@@ -235,7 +235,21 @@ def send_daily_reminders(key: str = ""):
             except Exception as e:
                 print(f"❌ {name} için bildirim gönderilemedi. Hata: {e}")
 
-    return {"status": "Tamamlandı", "ulasilan_kisi_sayisi": success_count}
+@app.post("/chat")
+async def chat_endpoint(request: ChatRequest):
+    # Temel yapay zeka sistem komutu
+    system_instruction = f"You are a language learning assistant. The user's level: {request.level}."
+
+    if request.role == "roleplay" and request.scenario_prompt:
+        # EĞER ROLEPLAY İSE: Senaryoyu doğrudan yapay zekaya emret!
+        system_instruction += f" YOUR CURRENT TASK/ROLE IS THIS: {request.scenario_prompt}. Start the conversation or respond to the user's first message appropriately for this role."
+    
+    elif request.role == "teacher":
+        system_instruction += "you are english teacher..."
+        
+    # Gemini API'sine system_instruction ve mesajı gönder...
+
+    return {"status": "Completed", "ulasilan_kisi_sayisi": success_count}
 
 
 
