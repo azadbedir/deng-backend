@@ -27,7 +27,7 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 # --- GELİŞMİŞ ROLLER VE KESİN DİL KURALLARI ---
-def get_system_instruction(role, target_lang, source_lang, level):
+def get_system_instruction(role, target_lang, source_lang, level, scenario_prompt=""):
 
     # SEVİYE AYARLARI (İngilizce yazıyoruz ki LLM komutu dille karıştırmasın)
     level_instruction = ""
@@ -79,6 +79,13 @@ def get_system_instruction(role, target_lang, source_lang, level):
         - You are conducting a job interview in {target_lang}.
         - Ask one professional interview question at a time. Wait for the user's answer, evaluate it professionally, and ask the next question.
         """
+    elif role == "roleplay":
+        return base + f"""
+        [YOUR ROLE: {scenario_prompt}]
+        - You MUST act exactly as this character/scenario: {scenario_prompt}.
+        - DO NOT break character. Do not act like an AI or a teacher.
+        - Converse completely in {target_lang}.
+        """
         
     else:
         return base + f"\n[YOUR ROLE: HELPFUL ASSISTANT]\nConverse naturally in {target_lang}."
@@ -91,6 +98,7 @@ class ChatRequest(BaseModel):
     source_lang: str = "Turkish"
     level: str = "A1-A2 (Beginner)"
     history: List[Dict[str, str]] = []
+    scenario_prompt: str = ""
 
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
@@ -100,6 +108,7 @@ def chat_endpoint(request: ChatRequest):
             request.target_lang, 
             request.source_lang, 
             request.level 
+            request.scenario_prompt
         )
         
         # DÜZELTİLDİ: Stabil metin modeli kullanılıyor
@@ -234,23 +243,5 @@ def send_daily_reminders(key: str = ""):
                 success_count += 1
             except Exception as e:
                 print(f"❌ {name} için bildirim gönderilemedi. Hata: {e}")
-
-@app.post("/chat")
-async def chat_endpoint(request: ChatRequest):
-    # Temel yapay zeka sistem komutu
-    system_instruction = f"You are a language learning assistant. The user's level: {request.level}."
-
-    if request.role == "roleplay" and request.scenario_prompt:
-        # EĞER ROLEPLAY İSE: Senaryoyu doğrudan yapay zekaya emret!
-        system_instruction += f" YOUR CURRENT TASK/ROLE IS THIS: {request.scenario_prompt}. Start the conversation or respond to the user's first message appropriately for this role."
-    
-    elif request.role == "teacher":
-        system_instruction += "you are english teacher..."
-        
-    # Gemini API'sine system_instruction ve mesajı gönder...
-
-    return {"status": "Completed", "ulasilan_kisi_sayisi": success_count}
-
-
 
 
