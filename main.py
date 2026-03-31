@@ -7,6 +7,7 @@ import io
 from typing import List, Dict
 import firebase_admin
 from firebase_admin import credentials, firestore, messaging
+from fastapi.responses import JSONResponse
 
 # --- API KEY ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") 
@@ -130,9 +131,13 @@ def chat_endpoint(request: ChatRequest):
         
         return {"reply": response.text}
     except Exception as e:
-        # DÜZELTİLDİ: Gerçek hata mesajını Deng'in ağzından göreceğiz
-        error_message = str(e)
-        return {"reply": f"Sistem Hatası: {error_message}", "error": error_message}
+        error_msg = str(e).lower()
+        # Eğer hata metninde 429 veya quota geçiyorsa, HTTP 429 durum kodu döndür
+        if "429" in error_msg or "quota" in error_msg or "exhausted" in error_msg:
+            return JSONResponse(status_code=429, content={"reply": "Quota Exceeded", "error": "429"})
+        
+        # Diğer tüm hatalar için HTTP 500 (Sunucu Hatası) döndür
+        return JSONResponse(status_code=500, content={"reply": f"Sistem Hatası: {str(e)}", "error": str(e)})
     
 
 # --- 2. GÖRSEL ZEKA ENDPOINT ---
@@ -150,7 +155,13 @@ async def vision_endpoint(file: UploadFile = File(...), prompt: str = Form(...),
         
         return {"reply": response.text}
     except Exception as e:
-        return {"reply": f"Görsel Hatası: {str(e)}", "error": str(e)}
+        error_msg = str(e).lower()
+        # Eğer hata metninde 429 veya quota geçiyorsa, HTTP 429 durum kodu döndür
+        if "429" in error_msg or "quota" in error_msg or "exhausted" in error_msg:
+            return JSONResponse(status_code=429, content={"reply": "Quota Exceeded", "error": "429"})
+        
+        # Diğer tüm hatalar için HTTP 500 (Sunucu Hatası) döndür
+        return JSONResponse(status_code=500, content={"reply": f"Sistem Hatası: {str(e)}", "error": str(e)})
     
 # --- 3. AKILLI SÖZLÜK ENDPOINT ---
 class DefineRequest(BaseModel):
@@ -188,8 +199,13 @@ def define_endpoint(request: DefineRequest):
         return data
         
     except Exception as e:
-        print(f"Hata: {e}")
-        return {"definition": f"Hata: {str(e)}", "error": str(e)}
+        error_msg = str(e).lower()
+        # Eğer hata metninde 429 veya quota geçiyorsa, HTTP 429 durum kodu döndür
+        if "429" in error_msg or "quota" in error_msg or "exhausted" in error_msg:
+            return JSONResponse(status_code=429, content={"reply": "Quota Exceeded", "error": "429"})
+        
+        # Diğer tüm hatalar için HTTP 500 (Sunucu Hatası) döndür
+        return JSONResponse(status_code=500, content={"reply": f"Sistem Hatası: {str(e)}", "error": str(e)})
 
 # --- 4. CÜMLE ÇEVİRİ ENDPOINT ---
 class TranslateRequest(BaseModel):
@@ -211,7 +227,13 @@ def translate_sentence_endpoint(request: TranslateRequest):
         
         return {"translation": response.text.strip()}
     except Exception as e:
-        return {"translation": f"Çeviri Hatası: {str(e)}", "error": str(e)}
+        error_msg = str(e).lower()
+        # Eğer hata metninde 429 veya quota geçiyorsa, HTTP 429 durum kodu döndür
+        if "429" in error_msg or "quota" in error_msg or "exhausted" in error_msg:
+            return JSONResponse(status_code=429, content={"reply": "Quota Exceeded", "error": "429"})
+        
+        # Diğer tüm hatalar için HTTP 500 (Sunucu Hatası) döndür
+        return JSONResponse(status_code=500, content={"reply": f"Sistem Hatası: {str(e)}", "error": str(e)})
 
 # --- 5. OTOMATİK BİLDİRİM TETİKLEYİCİ ENDPOINT ---
 @app.get("/send_daily_reminders")
