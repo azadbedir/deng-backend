@@ -266,4 +266,8 @@ def send_daily_reminders(key: str = ""):
             except Exception as e:
                 print(f"❌ {name} için bildirim gönderilemedi. Hata: {e}")
 
+# --- 6. SUNUCU UYANDIRMA (PING) ENDPOINT'İ ---
+@app.get("/ping")
+def ping_endpoint():
+    return {"status": "Deng backend is awake and running!"}
 
