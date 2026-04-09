@@ -2,7 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore, messaging
 
 # 1. Firebase Anahtarını Tanıt (İndirdiğin JSON dosyasının adı)
-cred = credentials.Certificate(r"C:\Users\Azad\OneDrive\Desktop\english_buddy_backend\firebase-key.json")
+cred = credentials.Certificate("firebase-key.json")
 firebase_admin.initialize_app(cred)
 
 # Veritabanına (Firestore) bağlan
