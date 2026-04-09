@@ -251,8 +251,12 @@ def send_daily_reminders(key: str = ""):
         user_data = user.to_dict()
         token = user_data.get('fcm_token')
         name = user_data.get('display_name', 'Dostum') 
+        
+        # EKLENEN KISIM: Kullanıcının tercihini veritabanından çek (Varsayılan True)
+        notif_daily = user_data.get('notif_daily', True)
 
-        if token:
+        # GÜNCELLENEN KISIM: Hem token varsa hem de bildirim izni açıksa gönder
+        if token and notif_daily:
             try:
                 message = messaging.Message(
                     notification=messaging.Notification(
@@ -261,8 +265,9 @@ def send_daily_reminders(key: str = ""):
                     ),
                     token=token, 
                 )
-                messaging.send(message)
-                success_count += 1
+                response = messaging.send(message)
+                print(f"✅ {name} adlı kişiye bildirim gönderildi!")
+                
             except Exception as e:
                 print(f"❌ {name} için bildirim gönderilemedi. Hata: {e}")
 
