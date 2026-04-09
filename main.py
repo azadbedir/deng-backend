@@ -249,9 +249,16 @@ def send_daily_reminders(key: str = ""):
 
     for user in users_ref:
         user_data = user.to_dict()
-        token = user_data.get('fcm_token')
+        
+        # 1. ADIM (FİLTRE): Eğer notifications_enabled değeri False ise, alt satırlara hiç inmeden direkt sıradaki kişiye geçiyoruz.
+        if user_data.get('notifications_enabled', True) == False:
+            continue  
+        
+        # 2. ADIM (VERİ HAZIRLIĞI): İzni olan kullanıcıların verilerini çekiyoruz.
+        token = user_data.get('fcmToken') or user_data.get('fcm_token')
         name = user_data.get('display_name', 'Dostum') 
 
+        # 3. ADIM (GÖNDERİM): Token varsa bildirimi yolluyoruz.
         if token:
             try:
                 message = messaging.Message(
@@ -265,6 +272,8 @@ def send_daily_reminders(key: str = ""):
                 success_count += 1
             except Exception as e:
                 print(f"❌ {name} için bildirim gönderilemedi. Hata: {e}")
+
+    return {"status": "success", "sent_count": success_count}
 
 # --- 6. SUNUCU UYANDIRMA (PING) ENDPOINT'İ ---
 @app.get("/ping")
