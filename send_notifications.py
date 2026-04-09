@@ -17,25 +17,23 @@ def send_personalized_notifications():
     for user in users_ref:
         user_data = user.to_dict()
         token = user_data.get('fcm_token')
-        
-        # Eğer kullanıcının ismi yoksa varsayılan olarak 'Dostum' yaz
         name = user_data.get('display_name', 'Dostum') 
+        
+        # EKLENEN KISIM: Kullanıcının tercihini veritabanından çek (Varsayılan True)
+        notif_daily = user_data.get('notif_daily', True)
 
-        # Sadece bildirim adresi (token) olanlara gönder
-        if token:
+        # GÜNCELLENEN KISIM: Hem token varsa hem de bildirim izni açıksa gönder
+        if token and notif_daily:
             try:
-                # 3. Bildirimi isme özel olarak hazırla
                 message = messaging.Message(
                     notification=messaging.Notification(
-                        title=f"Hey {name}! Pratik Zamanı 🚀", # İSİM BURAYA GELECEK
+                        title=f"Hey {name}! Pratik Zamanı 🚀", 
                         body="Deng seni bekliyor, gel ve hemen 5 dakika pratik yapalım!"
                     ),
-                    token=token, # Sadece bu kişinin telefonuna gönderir
+                    token=token, 
                 )
-
-                # 4. Bildirimi ateşle!
                 response = messaging.send(message)
-                print(f"✅ {name} adlı kişiye bildirim gönderildi! (ID: {response})")
+                print(f"✅ {name} adlı kişiye bildirim gönderildi!")
                 
             except Exception as e:
                 print(f"❌ {name} için bildirim gönderilemedi. Hata: {e}")
